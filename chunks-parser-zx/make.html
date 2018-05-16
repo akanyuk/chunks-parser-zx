@@ -1,0 +1,444 @@
+<!-- 
+Парсер кадров GIF-анимации 64х48 4 цвета в бинарный файл.
+Хранение данных с оптимизацией объема.
+
+При установке переменной parserType = '2screen' кадры кадры отображаются "через один". 
+Оптимальное количество цветов - 6. 
+КОЛЧИСЕТВО КАДРОВ ДОЛЖНО БЫТЬ ЧЕТНЫМ!
+
+Формат хранения данных:
+1 байт - атрибутное смещение внутри 1/3 экрана
+1 байт - четрые чанка в этой атрибутной области, каждому 2 бита: %44332211 -  44: правый-верхний, 33: левый-верхний, 22: правый-нижний, 11: левый-нижний
+
+#ffff (четрые чанка максимальной яркости в правой нижней части области) - признак перехода в следующую 1/3 экрана или конца фрейма.
+
+Настройки:
+`srcGIF`	- Имя исходной GIF-анимации;
+`destFilename`	- Имя файла для сохранения;
+-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<script type="text/javascript" src="vendor/libgif.js"></script>
+<script type="text/javascript" src="vendor/jquery-1.8.3.min.js"></script>
+<script type="text/javascript" src="vendor/FileSaver.js"></script>
+<title>GIF2BIN</title>
+<script type="text/javascript">
+
+// SETUP BLOCK
+
+var srcImg = 'a2-64x48-6r-test.gif';
+var destFilename = 'a2-1s-attr';
+var destExtension = 'asm';
+
+var parserType = '1screen';			// Последовательный парсинг кадров
+//var parserType = '2screen';		// Парсинг кадров "через один", для вывода на два экрана
+
+var useAttrubutes = true;			// Использовать область атрибутов для "стирания"
+//var useAttrubutes = false;		// Использовать область атрибутов для "стирания"
+
+//var saveSeparateOddEven = true;	// Сохранять раздельно четные и нечетные фреймы
+var saveSeparateOddEven = false;	// Сохранять раздельно четные и нечетные фреймы
+
+//var justColorInfo = true;			// Только сбор информации о цветах
+var justColorInfo = false;			// Только сбор информации о цветах
+
+var kkolors = {};
+var kkolors_info = {};
+var fullFrames = [];				// Полная карта фреймов
+
+var currentBlankedAttr = []; 		// Массив хранения текущих "зачерненных" атрибутов. Используется при useAttrubutes = true
+
+// Формируем пустую карту "зачернения"
+if (useAttrubutes) {
+	for (var i = 0; i < 2; i++) {
+		currentBlankedAttr[i] = [];
+
+		for (x = 0; x < 64; x++) {
+			currentBlankedAttr[i][x] = [];
+			for (y = 0; y < 48; y++) {
+				currentBlankedAttr[i][x][y] = false;
+			}
+		}
+	}
+}
+
+$(document).ready(function(){
+	$('img[id="src-gif"]').attr('rel:animated_src', srcImg);	
+	
+	var srcGif = new SuperGif({ gif: $('img[id="src-gif"]')[0] });
+	srcGif.load(function(){
+
+		var numColors = generateColorsTable();
+		$('div[id="total"]').append('<div>Colors found: ' + numColors + '</div>');
+
+		var numFrames = srcGif.get_length();
+		$('div[id="total"]').append('<div>Frames: ' + numFrames + '</div>');
+
+		// Calculate total pixels count (except black)
+		var totalPixels = 0;
+		$.each(kkolors, function(i, index){
+			if (index == 0) return; 
+			totalPixels += kkolors_info[i].count;
+		});
+
+		// Display info about colors
+		$.each(kkolors_info, function(i, info){
+			if (kkolors[i] == 0) return;	// skip black
+
+			$('<div/>', {
+			    'style': 'background-color: rgb(' + info.data[0] + ',' + info.data[1] + ',' + info.data[2] + ')',
+			    'html': 'Index: <strong>' + kkolors[i] + '</strong><br />' + info.count + ' (' + (info.count / totalPixels * 100).toFixed(2) + '%)'
+			}).appendTo('div[id="colors"]');
+		});
+
+		if (justColorInfo) return;
+
+		// Первый проход - формируем полную чанковую карту
+
+		srcGif.move_to(0); // reset to first frame
+		var firstFrame = loadDataFromFrame(srcGif.get_canvas().getContext("2d"));
+
+		var prevFrame = firstFrame;
+		var curFrame = [];
+
+		for (var i = 1; i < numFrames; i++) {
+			srcGif.move_to(i);
+			curFrame = makeFullFrame(loadDataFromFrame(srcGif.get_canvas().getContext("2d")), prevFrame, i);
+			fullFrames.push(curFrame);
+			prevFrame = curFrame;
+		}
+
+		// Make diffs from last - 1  to first frame
+		fullFrames.push(makeFullFrame(firstFrame, prevFrame, 0));
+
+
+		// Второй проход - формируем карту изменений между фреймами
+
+		// При useAttrubutes делаем два цикла, чтобы карта "зачерненных" атрибутов применилась правильно
+		for (var cnt = 0; cnt < (useAttrubutes ? 2 : 1); cnt++) {
+			if (parserType == '2screen') {
+				// Make diffs from 2 last to 2 first frames
+				proceedFrame(fullFrames[0], fullFrames[numFrames - 2], 0);
+				proceedFrame(fullFrames[1], fullFrames[numFrames - 1], 1);
+
+				for (var i = 2; i < numFrames; i++) {
+					proceedFrame(fullFrames[i], fullFrames[i - 2], i);
+				}
+			}
+			else {
+				proceedFrame(fullFrames[0], fullFrames[numFrames - 1], 0);
+
+				for (var i = 1; i < numFrames; i++) {
+					proceedFrame(fullFrames[i], fullFrames[i - 1], i);
+				}
+			}
+		}
+
+		if (saveSeparateOddEven) {
+			var totalBytesOdd = 0;	// Калькуляция занимаемого места
+			var totalBytesEven = 0;	// Калькуляция занимаемого места
+			var outTextOdd = '';
+			var outTextEven = '';
+
+			for (var i = 0; i < numFrames - 1; i+=2) {
+				totalBytesEven += $('*[rel="log"][id="' + i + '"]').data('bytes-used'); 
+				totalBytesOdd += $('*[rel="log"][id="' + (i+1) + '"]').data('bytes-used'); 
+
+				outTextEven = outTextEven + $('*[rel="out-db"][id="' + i + '"]').val();
+				outTextOdd = outTextOdd + $('*[rel="out-db"][id="' + (i+1) + '"]').val();
+			}
+
+			$('div[id="total"]').append('<div>Total bytes used in odd frames: ' + totalBytesOdd + '</div>');
+			$('div[id="total"]').append('<div>Total bytes used in even frames: ' + totalBytesEven + '</div>');
+			$('table[id="frames"]').show();
+
+			// Save
+			var blobOdd = new Blob([outTextOdd], {type: "text/plain;charset=utf-8"});
+			saveAs(blobOdd, destFilename + '-odd.' + destExtension);		
+
+			var blobEven = new Blob([outTextEven], {type: "text/plain;charset=utf-8"});
+			saveAs(blobEven, destFilename + '-even.' + destExtension);		
+		}
+		else {
+			var totalBytesUsed = 0;	// Калькуляция занимаемого места (всего). 
+			$.each($('*[rel="log"]'), function(){
+				totalBytesUsed += $(this).data('bytes-used'); 
+			});
+
+			
+			$('div[id="total"]').append('<div>Total bytes used: ' + totalBytesUsed + '</div>');
+			$('table[id="frames"]').show();
+
+			// Save
+			var outText = '';
+			$.each($('*[rel="out-db"]'), function(){
+				outText = outText + $(this).val();
+			});
+			
+			var blob = new Blob([outText], {type: "text/plain;charset=utf-8"});
+			saveAs(blob, destFilename + '.' + destExtension);		
+		}
+	});
+
+	function makeFullFrame(curFrame, prevFrame, index) {
+		var oddState = index%2;
+
+		for (x = 0; x < 64; x++) {
+			for (y = 0; y < 48; y++) {
+/*
+				if (oddState && (curFrame[x][y] == 1)) {
+					curFrame[x][y] = 2;
+				}
+				else if (!oddState && (curFrame[x][y] == 2 || curFrame[x][y] == 3)) {
+					//curFrame[x][y] = 0;
+				}
+				else {
+					curFrame[x][y] = 0;
+				}
+*/
+
+				switch (parserType) {
+					case '2screen':
+					if (curFrame[x][y] > 3) {
+						// Текущий чанк - яркий. Значит в любом случае отображаем
+						curFrame[x][y] = prevFrame[x][y] > 0 ? prevFrame[x][y] : curFrame[x][y] - 3;
+						if (curFrame[x][y] > 3) {
+							curFrame[x][y] = 3;
+						}
+
+					}
+					else if (curFrame[x][y] > 0 && prevFrame[x][y] < 3) {	// здесь можно поиграться и сравнить результаты: prevFrame[x][y] == 0, prevFrame[x][y] < 3 и т.п.
+						// Текущий чанк - не яркий. Отображаем только если его нет на предыдущем фрейме
+					}
+					else {
+						// Во всех остальных случаях чанк не отображаем
+						curFrame[x][y] = 0;
+					}
+
+					break;
+
+					default:
+						curFrame[x][y] = curFrame[x][y] > 3 ? 3 : curFrame[x][y];
+				}
+			}
+		}
+
+		return curFrame;
+	}
+
+	function proceedFrame(curFrame, prevFrame, index) {
+		// Фрейм может обрабатываться повторно (при useAttrubutes)
+		if (useAttrubutes) {
+			$('*[rel="out-db"][id="' + index + '"]').empty();	
+			$('*[rel="log"][id="' + index + '"]').empty();
+		}
+
+		var bytesUsed = 0; 
+		bytesUsed += proceedFrame13(curFrame, prevFrame, index, 0);
+		bytesUsed += proceedFrame13(curFrame, prevFrame, index, 16);
+		bytesUsed += proceedFrame13(curFrame, prevFrame, index, 32);
+
+		$('*[rel="log"][id="' + index + '"]').data('bytes-used', bytesUsed).append('<br />Bytes used: <strong>' + bytesUsed + '</strong>');
+	}
+
+ 	// Обрабатываем 1/3 экрана
+	function proceedFrame13(curFrame, prevFrame, index, fromY) {
+		var bytesUsed = 0;
+
+		var toBlank = [];
+		var toUnblank = [];
+
+		var oddState = parserType == '2screen' ? index%2 : 0;
+
+		for (y = fromY; y < fromY + 16; y+=2) {
+			for (x = 0; x < 64; x+=2) {
+				if (curFrame[x][y] == prevFrame[x][y] && curFrame[x+1][y] == prevFrame[x+1][y] && curFrame[x][y+1] == prevFrame[x][y+1] && curFrame[x+1][y+1] == prevFrame[x+1][y+1]) continue;	// Byte not changed
+
+				// Calculate screen address from attribute address
+				var addr = ((Math.floor(y/2)%8)*32 + Math.floor(x/2)).toString(16);
+
+				// %44332211 -  44: правый-верхний, 33: левый-верхний, 22: правый-нижний, 11: левый-нижний
+				var byte = byte2hex(curFrame[x][y] * 16 + curFrame[x+1][y] * 64 + curFrame[x][y+1] + curFrame[x+1][y+1] * 4);
+
+				if (useAttrubutes) {
+					if (byte == '00') {
+						// "черним" вместо вывода чанка
+						if (currentBlankedAttr[oddState][x][y] === false) {
+							currentBlankedAttr[oddState][x][y] = true;							
+							toBlank.push(addr);								
+						}
+					}
+					else {
+						if (currentBlankedAttr[oddState][x][y] === true) {
+							// отменяем "чернение" атрибута
+							currentBlankedAttr[oddState][x][y] = false;							
+							toUnblank.push(addr);
+						}
+						
+						$('*[rel="out-db"][id="' + index + '"]').append("\tdb #" + addr + " : db #" + byte + "\n");
+						bytesUsed += 2;
+					}
+				}
+				else {
+					// Обычный вывод чанка
+					if (addr == 'ff' && byte == 'ff') byte = 'fe'; // Если квадрат макс яркости в правом нижнем углу, то уменьшаем яркость, т.к. это признак перехода в следующую область
+					
+					$('*[rel="out-db"][id="' + index + '"]').append("\tdb #" + addr + " : db #" + byte + "\n");
+					bytesUsed += 2;
+				}
+			}
+		}
+
+		if (useAttrubutes) {
+			$('*[rel="out-db"][id="' + index + '"]').append("\tdb " + toBlank.length + "\t; count blanked\n\n");	// количество "зачерняемых" атрибутов
+			bytesUsed++;
+
+			$('*[rel="out-db"][id="' + index + '"]').append("\tdb #00\n\n");	// признак конца 1/3 экрана или текущего фрейма
+			bytesUsed++;
+
+			$.each(toBlank, function(i, addr) {
+				$('*[rel="out-db"][id="' + index + '"]').append("\tdb #" + addr + "\n");
+				bytesUsed++;
+			});
+
+			$('*[rel="out-db"][id="' + index + '"]').append("\n\tdb " + toUnblank.length + "\t; count unblanked\n\n");	// количество восстанавливаемых атрибутов
+			bytesUsed++;
+			$.each(toUnblank, function(i, addr) {
+				$('*[rel="out-db"][id="' + index + '"]').append("\tdb #" + addr + "\n");
+				bytesUsed++;
+			});
+			$('*[rel="out-db"][id="' + index + '"]').append("\n");	
+		}
+		else {
+			$('*[rel="out-db"][id="' + index + '"]').append("\tdw #ffff\n\n");	// признак конца 1/3 экрана или текущего фрейма
+			bytesUsed += 2;
+		}
+
+		return bytesUsed;
+	}
+
+	function loadDataFromFrame(gifFrame) {
+		var curFrame = [];
+
+		for (x = 0; x < 64; x++) {
+			
+			curFrame[x] = [];
+
+			for (y = 0; y < 48; y++) {
+				var p = gifFrame.getImageData(x,y,1,1);
+				var curColor = kkolors[Number(p.data[0] + p.data[1] + p.data[2])];
+				curFrame[x][y] = curColor;
+			}
+		}
+
+		return curFrame;
+	}
+
+	function generateColorsTable() {
+		for (i = 0; i < srcGif.get_length(); i += 1) {
+			srcGif.move_to(i);
+
+			// Create log row
+			$('table[id="frames"] tbody').append('<tr><td><canvas rel="src" id="' + i + '" title="frame: ' + i + '" width="128" height="96"></canvas></td><td class="out-db"><textarea rel="out-db" id="' + i + '" class="out-db"></textarea></td><td class="log"><div rel="log" id="' + i + '" class="log"></div></td></tr>');
+			
+			// Draw frame image
+			var canvasSrc = $('canvas[rel="src"][id="' + i + '"]')[0];
+			ctxSrc = canvasSrc.getContext("2d");
+			
+			ctxSrc.imageSmoothingEnabled = false;
+			ctxSrc.drawImage(srcGif.get_canvas(), 0, 0, 128, 96);
+
+
+			var frame = srcGif.get_canvas().getContext("2d");
+
+			for (y = 0; y < 48; y++) {
+				for (x = 0; x < 64; x++) {
+					var p = frame.getImageData(x,y,1,1);
+					var curColor = Number(p.data[0] + p.data[1] + p.data[2]);
+
+					if (!kkolors_info[curColor]) {
+						kkolors_info[curColor] = { count: 1, data: p.data };
+					}
+					else {
+						kkolors_info[curColor].count++;	
+					}
+				}
+			}
+		}
+
+		// Sort by color weight
+		Object.keys(kkolors_info).sort().forEach(function(key) {
+  			kkolors[key] = kkolors_info[key];
+		});
+
+		// Replace values with indexes
+		i = 0;
+		$.each(kkolors, function(key) {
+  			kkolors[key] = i++;
+		});
+
+		return i;
+	}
+
+	function rgb2hex(p) {
+		return Number(0x1000000 + p.data[0]*0x10000 + p.data[1]*0x100 + p.data[2]).toString(16).substring(1);
+	}
+
+
+	function byte2hex(integer) {
+    	var str = Number(integer).toString(16);
+    	return str.length == 1 ? "0" + str : str;
+	}
+});
+</script>
+</head>
+<style>
+	IMG, CANVAS {
+		image-rendering: optimizeSpeed;
+		image-rendering: -moz-crisp-edges;
+		image-rendering: -webkit-optimize-contrast;
+		image-rendering: optimize-contrast;
+		-ms-interpolation-mode: nearest-neighbor;
+	}
+
+	.jsgif { float: left; }
+	#colors { float: left; margin-left: 20px; }
+	#colors div { display: table-cell; width: 64px; height: 48px; vertical-align: middle; text-align: center; border: 1px dotted black; font-size: 10px; font-family: Verdana, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+
+	#total { margin-top: 10px; }
+
+	TABLE { border: 0px; border-collapse: separate; }
+	TD, TH { padding: 0 1px 0 1px; }
+	TH { background-color: #CCEFFF; }
+	TD { vertical-align: top; }
+	TD.log { background-color: #c6c6a8; padding: 5px; width: 100%; }
+	TD.out-db { }
+	
+	textarea.out-db {
+		padding: 5px;
+		font-size: 70%;
+		font-family: Lucida Console, Monospace, Courier New;
+		width: 400px;
+		height: 82px;
+	}
+</style>
+<body>
+	<img id="src-gif" rel:auto_play="0" />
+	<div id="colors"></div>
+	<div style="clear: both;"></div>
+
+	<div id="total"></div>
+	
+	<table id="frames" style="display: none;">
+	<thead>
+		<tr>
+			<th>Source</th>
+			<th>Result</th>
+			<th>Log</th>
+		</tr>
+	</thead>
+	<tbody></tbody>
+	</table>
+</body></html>
