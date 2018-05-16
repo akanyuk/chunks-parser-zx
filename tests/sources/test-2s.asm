@@ -2,14 +2,14 @@
 
 	device zxspectrum128
 
-	define CHE_TABLES #bb00	; адрес, с которого начинаются таблицы плеера (1к)
+	define CHE_TABLES #bb00	; Р°РґСЂРµСЃ, СЃ РєРѕС‚РѕСЂРѕРіРѕ РЅР°С‡РёРЅР°СЋС‚СЃСЏ С‚Р°Р±Р»РёС†С‹ РїР»РµРµСЂР° (1Рє)
 
 	org #6000
 start	di : ld sp, $-2
 
-	xor a : out (#fe), a	; бордюр
+	xor a : out (#fe), a	; Р±РѕСЂРґСЋСЂ
 
-	// чистим экраны
+	// С‡РёСЃС‚РёРј СЌРєСЂР°РЅС‹
 	call swap_screen
 	ld hl, #c000 : ld de, #c001 : ld bc, #1800 : ld (hl), l : ldir
 	ld bc, #02ff : ld (hl), #42 : ldir	
@@ -18,10 +18,10 @@ start	di : ld sp, $-2
 	ld hl, #c000 : ld de, #c001 : ld bc, #1800 : ld (hl), l : ldir
 	ld bc, #02ff : ld (hl), #43 : ldir
 
-	; инициация плеера
-	ld a, %11000000		; экран #c000 / нулевая стартовая яркость
-	ld hl, CHNK_START	; начало данных анитации
-	ld de, CHNK_END		; конец данных анитации
+	; РёРЅРёС†РёР°С†РёСЏ РїР»РµРµСЂР°
+	ld a, %11000000		; СЌРєСЂР°РЅ #c000 / РЅСѓР»РµРІР°СЏ СЃС‚Р°СЂС‚РѕРІР°СЏ СЏСЂРєРѕСЃС‚СЊ
+	ld hl, CHNK_START	; РЅР°С‡Р°Р»Рѕ РґР°РЅРЅС‹С… Р°РЅРёС‚Р°С†РёРё
+	ld de, CHNK_END		; РєРѕРЅРµС† РґР°РЅРЅС‹С… Р°РЅРёС‚Р°С†РёРё
 	call chnk_main.INIT		
 
 	ld a,#5c, i,a, hl,interr, (#5cff),hl : im 2 : ei
@@ -29,10 +29,10 @@ start	di : ld sp, $-2
 main	call player_start
 
 	// fade in	
-	ld b, #10		; количество итераций
+	ld b, #10		; РєРѕР»РёС‡РµСЃС‚РІРѕ РёС‚РµСЂР°С†РёР№
 fin_outer	push bc
 	call chnk_main.INC_BRGHT
-	ld b, #04		; внутри каждой интерации прокручиваем N раз анимацию для замедления эффекта
+	ld b, #04		; РІРЅСѓС‚СЂРё РєР°Р¶РґРѕР№ РёРЅС‚РµСЂР°С†РёРё РїСЂРѕРєСЂСѓС‡РёРІР°РµРј N СЂР°Р· Р°РЅРёРјР°С†РёСЋ РґР»СЏ Р·Р°РјРµРґР»РµРЅРёСЏ СЌС„С„РµРєС‚Р°
 	push bc : halt : pop bc : djnz $-3
 	pop bc : djnz fin_outer
 
@@ -93,10 +93,10 @@ _player_state	call _player_dummy
 _player_dummy	ret
 
 PLAYERS_START
-	; таблица яркостей
+	; С‚Р°Р±Р»РёС†Р° СЏСЂРєРѕСЃС‚РµР№
 BRIGHT_TABLE	include "../lib/chunks.bright.table.asm"
 		
-	; таблица чанков
+	; С‚Р°Р±Р»РёС†Р° С‡Р°РЅРєРѕРІ
 	align #100
 CHUNK_SRC	include "../lib/chunks.src.table.asm"
 
