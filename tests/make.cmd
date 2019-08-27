@@ -15,11 +15,7 @@ del /q test*.sna
 
 IF NOT EXIST %CUR_TEST%.sna GOTO ERROR
 
-rem Test it
-%UNREAL_PATH% %CUR_TEST%.sna
-
 GOTO END
-
 
 :ERROR
 EXIT 1

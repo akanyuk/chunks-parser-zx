@@ -125,7 +125,7 @@ CHUNK_SRC	include "../lib/chunks.src.table.asm"
 	display /d, 'Chunks players full length: ', $ - PLAYERS_START
 	endmodule
 
-CHNK_START	include "res/a2-2s-attr.asm"
+CHNK_START	include "res/parsed-2s-attr.asm"
 CHNK_END	display /d, 'Chunks data len: ', CHNK_END - CHNK_START
 
 

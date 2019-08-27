@@ -28,12 +28,12 @@
 
 // SETUP BLOCK
 
-var srcImg = 'a2-64x48-6r-test.gif';
-var destFilename = 'a2-1s-attr';
+var srcImg = 'test.gif';
+var destFilename = 'parsed-2s-attr';
 var destExtension = 'asm';
 
-var parserType = '1screen';			// Последовательный парсинг кадров
-//var parserType = '2screen';		// Парсинг кадров "через один", для вывода на два экрана
+//var parserType = '1screen';			// Последовательный парсинг кадров
+var parserType = '2screen';		// Парсинг кадров "через один", для вывода на два экрана
 
 var useAttrubutes = true;			// Использовать область атрибутов для "стирания"
 //var useAttrubutes = false;		// Использовать область атрибутов для "стирания"
@@ -69,8 +69,8 @@ $(document).ready(function(){
 	
 	var srcGif = new SuperGif({ gif: $('img[id="src-gif"]')[0] });
 	srcGif.load(function(){
+		var numColors = generateColorsTable(srcGif);
 
-		var numColors = generateColorsTable();
 		$('div[id="total"]').append('<div>Colors found: ' + numColors + '</div>');
 
 		var numFrames = srcGif.get_length();
@@ -88,7 +88,7 @@ $(document).ready(function(){
 			if (kkolors[i] == 0) return;	// skip black
 
 			$('<div/>', {
-			    'style': 'background-color: rgb(' + info.data[0] + ',' + info.data[1] + ',' + info.data[2] + ')',
+			    'style': 'background-color: #' + info.color,
 			    'html': 'Index: <strong>' + kkolors[i] + '</strong><br />' + info.count + ' (' + (info.count / totalPixels * 100).toFixed(2) + '%)'
 			}).appendTo('div[id="colors"]');
 		});
@@ -112,7 +112,6 @@ $(document).ready(function(){
 
 		// Make diffs from last - 1  to first frame
 		fullFrames.push(makeFullFrame(firstFrame, prevFrame, 0));
-
 
 		// Второй проход - формируем карту изменений между фреймами
 
@@ -318,80 +317,83 @@ $(document).ready(function(){
 
 		return bytesUsed;
 	}
+});
 
-	function loadDataFromFrame(gifFrame) {
-		var curFrame = [];
-
-		for (x = 0; x < 64; x++) {
-			
-			curFrame[x] = [];
-
-			for (y = 0; y < 48; y++) {
-				var p = gifFrame.getImageData(x,y,1,1);
-				var curColor = kkolors[Number(p.data[0] + p.data[1] + p.data[2])];
-				curFrame[x][y] = curColor;
-			}
+const loadDataFromFrame = function(frame) {
+	const result = [];
+	const pixels = new Uint32Array(frame.getImageData(0, 0, 64, 48).data.buffer);
+	
+	for (x = 0; x < 64; x++) {
+		result[x] = [];
+		for (y = 0; y < 48; y++) {
+			result[x][y] = kkolors[pixels[x + y * 64]];
 		}
-
-		return curFrame;
 	}
 
-	function generateColorsTable() {
-		for (i = 0; i < srcGif.get_length(); i += 1) {
-			srcGif.move_to(i);
+	return result;
+};
 
-			// Create log row
-			$('table[id="frames"] tbody').append('<tr><td><canvas rel="src" id="' + i + '" title="frame: ' + i + '" width="128" height="96"></canvas></td><td class="out-db"><textarea rel="out-db" id="' + i + '" class="out-db"></textarea></td><td class="log"><div rel="log" id="' + i + '" class="log"></div></td></tr>');
-			
-			// Draw frame image
-			var canvasSrc = $('canvas[rel="src"][id="' + i + '"]')[0];
-			ctxSrc = canvasSrc.getContext("2d");
-			
-			ctxSrc.imageSmoothingEnabled = false;
-			ctxSrc.drawImage(srcGif.get_canvas(), 0, 0, 128, 96);
+const generateColorsTable = function(srcGif) {
+	for (i = 0; i < srcGif.get_length(); i += 1) {
+		srcGif.move_to(i);
 
+		// Create log row
+		$('table[id="frames"] tbody').append('<tr><td><canvas rel="src" id="' + i + '" title="frame: ' + i + '" width="128" height="96"></canvas></td><td class="out-db"><textarea rel="out-db" id="' + i + '" class="out-db"></textarea></td><td class="log"><div rel="log" id="' + i + '" class="log"></div></td></tr>');
 
-			var frame = srcGif.get_canvas().getContext("2d");
+		// Draw frame image
+		const canvasSrc = $('canvas[rel="src"][id="' + i + '"]')[0];
+		ctxSrc = canvasSrc.getContext("2d");
 
-			for (y = 0; y < 48; y++) {
-				for (x = 0; x < 64; x++) {
-					var p = frame.getImageData(x,y,1,1);
-					var curColor = Number(p.data[0] + p.data[1] + p.data[2]);
+		ctxSrc.imageSmoothingEnabled = false;
+		ctxSrc.drawImage(srcGif.get_canvas(), 0, 0, 128, 96);
 
-					if (!kkolors_info[curColor]) {
-						kkolors_info[curColor] = { count: 1, data: p.data };
-					}
-					else {
-						kkolors_info[curColor].count++;	
-					}
+		const frame = srcGif.get_canvas().getContext("2d");
+		const pixels = new Uint32Array(frame.getImageData(0, 0, 64, 48).data.buffer);
+
+		for (y = 0; y < 48; y++) {
+			for (x = 0; x < 64; x++) {
+				const curColor = pixels[x + y * 64];
+
+				if (!kkolors_info[curColor]) {
+					kkolors_info[curColor] = { count: 1, color: pixel2hex(curColor) };
+				}
+				else {
+					kkolors_info[curColor].count++;	
 				}
 			}
 		}
-
-		// Sort by color weight
-		Object.keys(kkolors_info).sort().forEach(function(key) {
-  			kkolors[key] = kkolors_info[key];
-		});
-
-		// Replace values with indexes
-		i = 0;
-		$.each(kkolors, function(key) {
-  			kkolors[key] = i++;
-		});
-
-		return i;
 	}
 
-	function rgb2hex(p) {
-		return Number(0x1000000 + p.data[0]*0x10000 + p.data[1]*0x100 + p.data[2]).toString(16).substring(1);
+	// Sort by color weight
+	Object.keys(kkolors_info).sort().forEach(function(key) {
+		kkolors[key] = kkolors_info[key];
+	});
+
+	// Replace values with indexes
+	i = 0;
+	$.each(kkolors, function(key) {
+		kkolors[key] = i++;
+	});
+
+	return i;
+};
+
+// Make css hex color from rgba (no alpha)
+const pixel2hex = function(integer) {
+	var str = Number(integer).toString(16);
+	
+	if (str.length == 1) {
+		return "0";
 	}
 
+    return str.substr(2);
+};
 
-	function byte2hex(integer) {
-    	var str = Number(integer).toString(16);
-    	return str.length == 1 ? "0" + str : str;
-	}
-});
+const byte2hex = function(integer) {
+    var str = Number(integer).toString(16);
+    return str.length == 1 ? "0" + str : str;
+};
+
 </script>
 </head>
 <style>
@@ -414,7 +416,6 @@ $(document).ready(function(){
 	TH { background-color: #CCEFFF; }
 	TD { vertical-align: top; }
 	TD.log { background-color: #c6c6a8; padding: 5px; width: 100%; }
-	TD.out-db { }
 	
 	textarea.out-db {
 		padding: 5px;
