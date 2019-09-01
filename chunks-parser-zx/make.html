@@ -48,7 +48,6 @@ const justColorInfo = false;		// Только сбор информации о �
 const kkolors = {};
 const kkolors_info = {};
 var fullFrames = [];				// Полная карта фреймов
-var keyFrame = [];					// Ключевой кадр. Содержит чанки, неизменяемые на протяжении всей анимации
 
 // Дополняем суффиксы имение файла
 if (parserType == '1screen') {
@@ -126,8 +125,6 @@ $(document).ready(function(){
 		// Make diffs from last - 1  to first frame
 		fullFrames.push(makeFullFrame(firstFrame, prevFrame, 0));
 
-		keyFrame = makeKeyFrame(fullFrames);
-
 		// Второй проход - формируем карту изменений между фреймами
 		// При useAttrubutes делаем два цикла, чтобы карта "зачерненных" атрибутов применилась правильно
 		for (cnt = 0; cnt < (useAttrubutes ? 2 : 1); cnt++) {
@@ -192,43 +189,8 @@ $(document).ready(function(){
 			const blob = new Blob([outText], {type: "text/plain;charset=utf-8"});
 			saveAs(blob, destFilename + '.' + destExtension);		
 		}
-
-		if (keyFrame !== false) {
-			$('body').append('<textarea rel="out-db" id="keyframe"></textarea>');
-			proceedFrame(keyFrame, emptyFrame, "keyframe", false);
-
-			const keyFrameOut = $('[rel="out-db"][id="keyframe"]').val();
-			const blobKeyframe = new Blob([keyFrameOut], {type: "text/plain;charset=utf-8"});
-			saveAs(blobKeyframe, destFilename + '-keyframe.' + destExtension);		
-		}
 	});
 });
-
-const makeKeyFrame = function(frames) {
-	isKeyFrameNotNecessary = true;
-	keyFrame = frames[0];
-
-	for (x = 0; x < 64; x++) {
-		for (y = 0; y < 48; y++) {
-			needKey = true;
-			for (i = 1; i < frames.length; i++) {	
-				if (frames[i][x][y] != keyFrame[x][y]) {
-					needKey = false;
-					break;
-				}
-			}			
-			if (needKey == false) {
-				keyFrame[x][y] = 0;
-			} else {
-				if (keyFrame[x][y] != 0) {
-					isKeyFrameNotNecessary = false;
-				}
-			}
-		}
-	}
-
-	return isKeyFrameNotNecessary ? false : keyFrame;
-};
 
 const makeFullFrame = function(curFrame, prevFrame, index) {
 	for (x = 0; x < 64; x++) {
@@ -277,11 +239,6 @@ const proceedFrame = function(curFrame, prevFrame, index, useAttrubutes) {
 // Обрабатываем 1/3 экрана
 const proceedFrame13 = function(curFrame, prevFrame, index, fromY, useAttrubutes) {
 	oddState = parserType == '2screen' ? index%2 : 0;
-
-	// kostyl for keyframe
-	if (isNaN(oddState)) {
-		oddState = 0;
-	}
 
 	var bytesUsed = 0;
 	var toBlank = [];
