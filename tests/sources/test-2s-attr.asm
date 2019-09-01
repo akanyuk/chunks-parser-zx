@@ -18,15 +18,16 @@ start	di : ld sp, $-2
 	ld hl, #c000 : ld de, #c001 : ld bc, #1800 : ld (hl), l : ldir
 	ld bc, #02ff : ld (hl), #43 : ldir
 
-	; инициация плеера
-	ld a, %11000000		; экран #c000 / нулевая стартовая яркость
-	ld hl, CHNK_START	; начало данных анитации
-	ld de, CHNK_END		; конец данных анитации
-	call chnk_main.INIT		
+	; player initalization
+	ld a, %11000000		; screen in #c000 / animation bright = 0
+	ld hl, CHNK_START	; animation start
+	ld de, CHNK_END		; animation end
+	call chnk_main.INIT	
 
 	ld a,#5c, i,a, hl,interr, (#5cff),hl : im 2 : ei
 
-main	call player_start
+main	
+	call player_start
 
 	// fade in	
 	ld b, #10		; количество итераций
@@ -58,14 +59,14 @@ fout_outer	push bc
 	push bc : halt : pop bc : djnz $-3
 	pop bc : djnz fout_outer
 
-	; just pause
-	ld b, #20 : halt : djnz $-1
-
 	; stop playing befor flipping!!!
 	call player_stop
 
+	; just pause
+	ld b, #20 : halt : djnz $-1
+
 	; flip horizontal or vertical on every iteration
-flp_flag	ld a, #00 : inc a : and #01 : ld (flp_flag + 1), a
+flp_flag	ld a, #01 : inc a : and #01 : ld (flp_flag + 1), a
 	or a : jr z, $+7
 	call chnk_main.FLIP_HORIZ
 	jr $+5

@@ -18,11 +18,11 @@ start	di : ld sp, $-2
 	ld hl, #c000 : ld de, #c001 : ld bc, #1800 : ld (hl), l : ldir
 	ld bc, #02ff : ld (hl), #43 : ldir
 
-	; инициация плеера
-	ld a, %11000000		; экран #c000 / нулевая стартовая яркость
-	ld hl, CHNK_START	; начало данных анитации
-	ld de, CHNK_END		; конец данных анитации
-	call chnk_main.INIT		
+	; player initalization
+	ld a, %11000000		; screen in #c000 / animation bright = 0
+	ld hl, CHNK_START	; animation start
+	ld de, CHNK_END		; animation end
+	call chnk_main.INIT	
 
 	ld a,#5c, i,a, hl,interr, (#5cff),hl : im 2 : ei
 

@@ -1,4 +1,13 @@
-<!-- 
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<script type="text/javascript" src="vendor/libgif.js"></script>
+<script type="text/javascript" src="vendor/jquery-1.8.3.min.js"></script>
+<script type="text/javascript" src="vendor/FileSaver.js"></script>
+<title>GIF2BIN</title>
+<script type="text/javascript">
+/*
 Парсер кадров GIF-анимации 64х48 4 цвета в бинарный файл.
 Хранение данных с оптимизацией объема.
 
@@ -15,65 +24,69 @@
 Настройки:
 `srcGIF`	- Имя исходной GIF-анимации;
 `destFilename`	- Имя файла для сохранения;
--->
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<script type="text/javascript" src="vendor/libgif.js"></script>
-<script type="text/javascript" src="vendor/jquery-1.8.3.min.js"></script>
-<script type="text/javascript" src="vendor/FileSaver.js"></script>
-<title>GIF2BIN</title>
-<script type="text/javascript">
+*/
 
 // SETUP BLOCK
 
-var srcImg = 'test.gif';
-var destFilename = 'parsed-2s-attr';
-var destExtension = 'asm';
+const srcImg = 'test.gif';
+var destFilename = 'parsed';
+const destExtension = 'asm';
 
-//var parserType = '1screen';			// Последовательный парсинг кадров
-var parserType = '2screen';		// Парсинг кадров "через один", для вывода на два экрана
+//const parserType = '1screen';		// Последовательный парсинг кадров
+const parserType = '2screen';			// Парсинг кадров "через один", для вывода на два экрана
 
-var useAttrubutes = true;			// Использовать область атрибутов для "стирания"
-//var useAttrubutes = false;		// Использовать область атрибутов для "стирания"
+const useAttrubutes = true;			// Использовать область атрибутов для "стирания"
+//const useAttrubutes = false;		// Использовать область атрибутов для "стирания"
 
-//var saveSeparateOddEven = true;	// Сохранять раздельно четные и нечетные фреймы
-var saveSeparateOddEven = false;	// Сохранять раздельно четные и нечетные фреймы
+//const saveSeparateOddEven = true;	// Сохранять раздельно четные и нечетные фреймы
+const saveSeparateOddEven = false;	// Сохранять раздельно четные и нечетные фреймы
 
-//var justColorInfo = true;			// Только сбор информации о цветах
-var justColorInfo = false;			// Только сбор информации о цветах
+//const justColorInfo = true;		// Только сбор информации о цветах
+const justColorInfo = false;		// Только сбор информации о цветах
 
-var kkolors = {};
-var kkolors_info = {};
+
+const kkolors = {};
+const kkolors_info = {};
 var fullFrames = [];				// Полная карта фреймов
+var keyFrame = [];					// Ключевой кадр. Содержит чанки, неизменяемые на протяжении всей анимации
 
-var currentBlankedAttr = []; 		// Массив хранения текущих "зачерненных" атрибутов. Используется при useAttrubutes = true
+// Дополняем суффиксы имение файла
+if (parserType == '1screen') {
+	destFilename += '-1s';
+} else {
+	destFilename += '-2s';
+}
 
-// Формируем пустую карту "зачернения"
-if (useAttrubutes) {
-	for (var i = 0; i < 2; i++) {
-		currentBlankedAttr[i] = [];
+if (useAttrubutes == true) {
+	destFilename += '-attr';
+}
 
-		for (x = 0; x < 64; x++) {
-			currentBlankedAttr[i][x] = [];
-			for (y = 0; y < 48; y++) {
-				currentBlankedAttr[i][x][y] = false;
-			}
+// Формируем пустую карту "зачернения" и пустой фрейм
+const currentBlankedAttr = []; 		// Массив хранения текущих "зачерненных" атрибутов. Используется при useAttrubutes = true
+const emptyFrame = [];				// Пустой фрейм
+for (i = 0; i < 2; i++) {
+	currentBlankedAttr[i] = [];
+
+	for (x = 0; x < 64; x++) {
+		currentBlankedAttr[i][x] = [];
+		emptyFrame[x] = [];
+		for (y = 0; y < 48; y++) {
+			currentBlankedAttr[i][x][y] = false;
+			emptyFrame[x][y] = 0;
 		}
 	}
 }
 
 $(document).ready(function(){
 	$('img[id="src-gif"]').attr('rel:animated_src', srcImg);	
-	
-	var srcGif = new SuperGif({ gif: $('img[id="src-gif"]')[0] });
+
+	const srcGif = new SuperGif({ gif: $('img[id="src-gif"]')[0] });
 	srcGif.load(function(){
-		var numColors = generateColorsTable(srcGif);
+		const numColors = generateColorsTable(srcGif);
 
 		$('div[id="total"]').append('<div>Colors found: ' + numColors + '</div>');
 
-		var numFrames = srcGif.get_length();
+		const numFrames = srcGif.get_length();
 		$('div[id="total"]').append('<div>Frames: ' + numFrames + '</div>');
 
 		// Calculate total pixels count (except black)
@@ -98,12 +111,12 @@ $(document).ready(function(){
 		// Первый проход - формируем полную чанковую карту
 
 		srcGif.move_to(0); // reset to first frame
-		var firstFrame = loadDataFromFrame(srcGif.get_canvas().getContext("2d"));
+		const firstFrame = loadDataFromFrame(srcGif.get_canvas().getContext("2d"));
 
 		var prevFrame = firstFrame;
 		var curFrame = [];
 
-		for (var i = 1; i < numFrames; i++) {
+		for (i = 1; i < numFrames; i++) {
 			srcGif.move_to(i);
 			curFrame = makeFullFrame(loadDataFromFrame(srcGif.get_canvas().getContext("2d")), prevFrame, i);
 			fullFrames.push(curFrame);
@@ -113,24 +126,25 @@ $(document).ready(function(){
 		// Make diffs from last - 1  to first frame
 		fullFrames.push(makeFullFrame(firstFrame, prevFrame, 0));
 
-		// Второй проход - формируем карту изменений между фреймами
+		keyFrame = makeKeyFrame(fullFrames);
 
+		// Второй проход - формируем карту изменений между фреймами
 		// При useAttrubutes делаем два цикла, чтобы карта "зачерненных" атрибутов применилась правильно
-		for (var cnt = 0; cnt < (useAttrubutes ? 2 : 1); cnt++) {
+		for (cnt = 0; cnt < (useAttrubutes ? 2 : 1); cnt++) {
 			if (parserType == '2screen') {
 				// Make diffs from 2 last to 2 first frames
-				proceedFrame(fullFrames[0], fullFrames[numFrames - 2], 0);
-				proceedFrame(fullFrames[1], fullFrames[numFrames - 1], 1);
+				proceedFrame(fullFrames[0], fullFrames[numFrames - 2], 0, useAttrubutes);
+				proceedFrame(fullFrames[1], fullFrames[numFrames - 1], 1, useAttrubutes);
 
-				for (var i = 2; i < numFrames; i++) {
-					proceedFrame(fullFrames[i], fullFrames[i - 2], i);
+				for (i = 2; i < numFrames; i++) {
+					proceedFrame(fullFrames[i], fullFrames[i - 2], i, useAttrubutes);
 				}
 			}
 			else {
-				proceedFrame(fullFrames[0], fullFrames[numFrames - 1], 0);
+				proceedFrame(fullFrames[0], fullFrames[numFrames - 1], 0, useAttrubutes);
 
-				for (var i = 1; i < numFrames; i++) {
-					proceedFrame(fullFrames[i], fullFrames[i - 1], i);
+				for (i = 1; i < numFrames; i++) {
+					proceedFrame(fullFrames[i], fullFrames[i - 1], i, useAttrubutes);
 				}
 			}
 		}
@@ -141,7 +155,7 @@ $(document).ready(function(){
 			var outTextOdd = '';
 			var outTextEven = '';
 
-			for (var i = 0; i < numFrames - 1; i+=2) {
+			for (i = 0; i < numFrames - 1; i+=2) {
 				totalBytesEven += $('*[rel="log"][id="' + i + '"]').data('bytes-used'); 
 				totalBytesOdd += $('*[rel="log"][id="' + (i+1) + '"]').data('bytes-used'); 
 
@@ -154,13 +168,12 @@ $(document).ready(function(){
 			$('table[id="frames"]').show();
 
 			// Save
-			var blobOdd = new Blob([outTextOdd], {type: "text/plain;charset=utf-8"});
+			const blobOdd = new Blob([outTextOdd], {type: "text/plain;charset=utf-8"});
 			saveAs(blobOdd, destFilename + '-odd.' + destExtension);		
 
-			var blobEven = new Blob([outTextEven], {type: "text/plain;charset=utf-8"});
+			const blobEven = new Blob([outTextEven], {type: "text/plain;charset=utf-8"});
 			saveAs(blobEven, destFilename + '-even.' + destExtension);		
-		}
-		else {
+		} else {
 			var totalBytesUsed = 0;	// Калькуляция занимаемого места (всего). 
 			$.each($('*[rel="log"]'), function(){
 				totalBytesUsed += $(this).data('bytes-used'); 
@@ -176,148 +189,173 @@ $(document).ready(function(){
 				outText = outText + $(this).val();
 			});
 			
-			var blob = new Blob([outText], {type: "text/plain;charset=utf-8"});
+			const blob = new Blob([outText], {type: "text/plain;charset=utf-8"});
 			saveAs(blob, destFilename + '.' + destExtension);		
 		}
+
+		if (keyFrame !== false) {
+			$('body').append('<textarea rel="out-db" id="keyframe"></textarea>');
+			proceedFrame(keyFrame, emptyFrame, "keyframe", false);
+
+			const keyFrameOut = $('[rel="out-db"][id="keyframe"]').val();
+			const blobKeyframe = new Blob([keyFrameOut], {type: "text/plain;charset=utf-8"});
+			saveAs(blobKeyframe, destFilename + '-keyframe.' + destExtension);		
+		}
 	});
+});
 
-	function makeFullFrame(curFrame, prevFrame, index) {
-		var oddState = index%2;
+const makeKeyFrame = function(frames) {
+	isKeyFrameNotNecessary = true;
+	keyFrame = frames[0];
 
-		for (x = 0; x < 64; x++) {
-			for (y = 0; y < 48; y++) {
-/*
-				if (oddState && (curFrame[x][y] == 1)) {
-					curFrame[x][y] = 2;
+	for (x = 0; x < 64; x++) {
+		for (y = 0; y < 48; y++) {
+			needKey = true;
+			for (i = 1; i < frames.length; i++) {	
+				if (frames[i][x][y] != keyFrame[x][y]) {
+					needKey = false;
+					break;
 				}
-				else if (!oddState && (curFrame[x][y] == 2 || curFrame[x][y] == 3)) {
-					//curFrame[x][y] = 0;
+			}			
+			if (needKey == false) {
+				keyFrame[x][y] = 0;
+			} else {
+				if (keyFrame[x][y] != 0) {
+					isKeyFrameNotNecessary = false;
 				}
-				else {
-					curFrame[x][y] = 0;
-				}
-*/
+			}
+		}
+	}
 
-				switch (parserType) {
-					case '2screen':
+	return isKeyFrameNotNecessary ? false : keyFrame;
+};
+
+const makeFullFrame = function(curFrame, prevFrame, index) {
+	for (x = 0; x < 64; x++) {
+		for (y = 0; y < 48; y++) {
+			switch (parserType) {
+				case '2screen':
 					if (curFrame[x][y] > 3) {
 						// Текущий чанк - яркий. Значит в любом случае отображаем
 						curFrame[x][y] = prevFrame[x][y] > 0 ? prevFrame[x][y] : curFrame[x][y] - 3;
 						if (curFrame[x][y] > 3) {
 							curFrame[x][y] = 3;
 						}
-
 					}
-					else if (curFrame[x][y] > 0 && prevFrame[x][y] < 3) {	// здесь можно поиграться и сравнить результаты: prevFrame[x][y] == 0, prevFrame[x][y] < 3 и т.п.
+					else if (curFrame[x][y] > 0 && prevFrame[x][y] < 3) {	
 						// Текущий чанк - не яркий. Отображаем только если его нет на предыдущем фрейме
 					}
 					else {
 						// Во всех остальных случаях чанк не отображаем
 						curFrame[x][y] = 0;
 					}
-
 					break;
-
-					default:
-						curFrame[x][y] = curFrame[x][y] > 3 ? 3 : curFrame[x][y];
-				}
+				default:
+					curFrame[x][y] = curFrame[x][y] > 3 ? 3 : curFrame[x][y];
 			}
 		}
-
-		return curFrame;
 	}
 
-	function proceedFrame(curFrame, prevFrame, index) {
-		// Фрейм может обрабатываться повторно (при useAttrubutes)
-		if (useAttrubutes) {
-			$('*[rel="out-db"][id="' + index + '"]').empty();	
-			$('*[rel="log"][id="' + index + '"]').empty();
-		}
+	return curFrame;
+};
 
-		var bytesUsed = 0; 
-		bytesUsed += proceedFrame13(curFrame, prevFrame, index, 0);
-		bytesUsed += proceedFrame13(curFrame, prevFrame, index, 16);
-		bytesUsed += proceedFrame13(curFrame, prevFrame, index, 32);
-
-		$('*[rel="log"][id="' + index + '"]').data('bytes-used', bytesUsed).append('<br />Bytes used: <strong>' + bytesUsed + '</strong>');
+const proceedFrame = function(curFrame, prevFrame, index, useAttrubutes) {
+	// Фрейм может обрабатываться повторно (при useAttrubutes)
+	if (useAttrubutes) {
+		$('*[rel="out-db"][id="' + index + '"]').empty();	
+		$('*[rel="log"][id="' + index + '"]').empty();
 	}
 
- 	// Обрабатываем 1/3 экрана
-	function proceedFrame13(curFrame, prevFrame, index, fromY) {
-		var bytesUsed = 0;
+	var bytesUsed = 0; 
+	bytesUsed += proceedFrame13(curFrame, prevFrame, index, 0, useAttrubutes);
+	bytesUsed += proceedFrame13(curFrame, prevFrame, index, 16, useAttrubutes);
+	bytesUsed += proceedFrame13(curFrame, prevFrame, index, 32, useAttrubutes);
 
-		var toBlank = [];
-		var toUnblank = [];
+	$('*[rel="log"][id="' + index + '"]').data('bytes-used', bytesUsed).append('<br />Bytes used: <strong>' + bytesUsed + '</strong>');
+};
 
-		var oddState = parserType == '2screen' ? index%2 : 0;
+// Обрабатываем 1/3 экрана
+const proceedFrame13 = function(curFrame, prevFrame, index, fromY, useAttrubutes) {
+	oddState = parserType == '2screen' ? index%2 : 0;
 
-		for (y = fromY; y < fromY + 16; y+=2) {
-			for (x = 0; x < 64; x+=2) {
-				if (curFrame[x][y] == prevFrame[x][y] && curFrame[x+1][y] == prevFrame[x+1][y] && curFrame[x][y+1] == prevFrame[x][y+1] && curFrame[x+1][y+1] == prevFrame[x+1][y+1]) continue;	// Byte not changed
+	// kostyl for keyframe
+	if (isNaN(oddState)) {
+		oddState = 0;
+	}
 
-				// Calculate screen address from attribute address
-				var addr = ((Math.floor(y/2)%8)*32 + Math.floor(x/2)).toString(16);
+	var bytesUsed = 0;
+	var toBlank = [];
+	var toUnblank = [];
 
-				// %44332211 -  44: правый-верхний, 33: левый-верхний, 22: правый-нижний, 11: левый-нижний
-				var byte = byte2hex(curFrame[x][y] * 16 + curFrame[x+1][y] * 64 + curFrame[x][y+1] + curFrame[x+1][y+1] * 4);
+	for (y = fromY; y < fromY + 16; y+=2) {
+		for (x = 0; x < 64; x+=2) {
+			if (curFrame[x][y] == prevFrame[x][y] && curFrame[x+1][y] == prevFrame[x+1][y] && curFrame[x][y+1] == prevFrame[x][y+1] && curFrame[x+1][y+1] == prevFrame[x+1][y+1]) {
+				// Byte not changed
+				continue;	
+			}
 
-				if (useAttrubutes) {
-					if (byte == '00') {
-						// "черним" вместо вывода чанка
-						if (currentBlankedAttr[oddState][x][y] === false) {
-							currentBlankedAttr[oddState][x][y] = true;							
-							toBlank.push(addr);								
-						}
-					}
-					else {
-						if (currentBlankedAttr[oddState][x][y] === true) {
-							// отменяем "чернение" атрибута
-							currentBlankedAttr[oddState][x][y] = false;							
-							toUnblank.push(addr);
-						}
-						
-						$('*[rel="out-db"][id="' + index + '"]').append("\tdb #" + addr + " : db #" + byte + "\n");
-						bytesUsed += 2;
+			// Calculate screen address from attribute address
+			const addr = ((Math.floor(y/2)%8)*32 + Math.floor(x/2)).toString(16);
+
+			// %44332211 -  44: правый-верхний, 33: левый-верхний, 22: правый-нижний, 11: левый-нижний
+			const byte = byte2hex(curFrame[x][y] * 16 + curFrame[x+1][y] * 64 + curFrame[x][y+1] + curFrame[x+1][y+1] * 4);			
+
+			if (useAttrubutes) {
+				if (byte == '00') {
+					// "черним" вместо вывода чанка
+					if (currentBlankedAttr[oddState][x][y] === false) {
+						currentBlankedAttr[oddState][x][y] = true;							
+						toBlank.push(addr);								
 					}
 				}
 				else {
-					// Обычный вывод чанка
-					if (addr == 'ff' && byte == 'ff') byte = 'fe'; // Если квадрат макс яркости в правом нижнем углу, то уменьшаем яркость, т.к. это признак перехода в следующую область
+					if (currentBlankedAttr[oddState][x][y] === true) {
+						// отменяем "чернение" атрибута
+						currentBlankedAttr[oddState][x][y] = false;							
+						toUnblank.push(addr);
+					}
 					
 					$('*[rel="out-db"][id="' + index + '"]').append("\tdb #" + addr + " : db #" + byte + "\n");
 					bytesUsed += 2;
 				}
 			}
+			else {
+				// Обычный вывод чанка
+				if (addr == 'ff' && byte == 'ff') byte = 'fe'; // Если квадрат макс яркости в правом нижнем углу, то уменьшаем яркость, т.к. это признак перехода в следующую область
+				
+				$('*[rel="out-db"][id="' + index + '"]').append("\tdb #" + addr + " : db #" + byte + "\n");
+				bytesUsed += 2;
+			}
 		}
-
-		if (useAttrubutes) {
-			$('*[rel="out-db"][id="' + index + '"]').append("\tdb " + toBlank.length + "\t; count blanked\n\n");	// количество "зачерняемых" атрибутов
-			bytesUsed++;
-
-			$('*[rel="out-db"][id="' + index + '"]').append("\tdb #00\n\n");	// признак конца 1/3 экрана или текущего фрейма
-			bytesUsed++;
-
-			$.each(toBlank, function(i, addr) {
-				$('*[rel="out-db"][id="' + index + '"]').append("\tdb #" + addr + "\n");
-				bytesUsed++;
-			});
-
-			$('*[rel="out-db"][id="' + index + '"]').append("\n\tdb " + toUnblank.length + "\t; count unblanked\n\n");	// количество восстанавливаемых атрибутов
-			bytesUsed++;
-			$.each(toUnblank, function(i, addr) {
-				$('*[rel="out-db"][id="' + index + '"]').append("\tdb #" + addr + "\n");
-				bytesUsed++;
-			});
-			$('*[rel="out-db"][id="' + index + '"]').append("\n");	
-		}
-		else {
-			$('*[rel="out-db"][id="' + index + '"]').append("\tdw #ffff\n\n");	// признак конца 1/3 экрана или текущего фрейма
-			bytesUsed += 2;
-		}
-
-		return bytesUsed;
 	}
-});
+
+	if (useAttrubutes) {
+		$('*[rel="out-db"][id="' + index + '"]').append("\tdb " + toBlank.length + "\t; count blanked\n\n");	// количество "зачерняемых" атрибутов
+		bytesUsed++;
+
+		$('*[rel="out-db"][id="' + index + '"]').append("\tdb #00\n\n");	// признак конца 1/3 экрана или текущего фрейма
+		bytesUsed++;
+
+		$.each(toBlank, function(i, addr) {
+			$('*[rel="out-db"][id="' + index + '"]').append("\tdb #" + addr + "\n");
+			bytesUsed++;
+		});
+
+		$('*[rel="out-db"][id="' + index + '"]').append("\n\tdb " + toUnblank.length + "\t; count unblanked\n\n");	// количество восстанавливаемых атрибутов
+		bytesUsed++;
+		$.each(toUnblank, function(i, addr) {
+			$('*[rel="out-db"][id="' + index + '"]').append("\tdb #" + addr + "\n");
+			bytesUsed++;
+		});
+		$('*[rel="out-db"][id="' + index + '"]').append("\n");	
+	}
+	else {
+		$('*[rel="out-db"][id="' + index + '"]').append("\tdw #ffff\n\n");	// признак конца 1/3 экрана или текущего фрейма
+		bytesUsed += 2;
+	}
+
+	return bytesUsed;
+};
 
 const loadDataFromFrame = function(frame) {
 	const result = [];

@@ -1,64 +1,158 @@
-	db #4e : db #07
-	db #6e : db #fa
-	db #6f : db #01
-	db #ec : db #04
+	db #ee : db #cc
 	dw #ffff
 
-	db #2d : db #dc
-	db #72 : db #b8
-	db #73 : db #af
-	db #74 : db #17
-	db #93 : db #10
+	db #e : db #ff
+	db #f : db #3f
+	db #2e : db #f0
+	db #2f : db #ff
+	db #30 : db #03
+	db #4f : db #c0
+	db #50 : db #33
+	db #8f : db #ff
+	dw #ffff
+
+	dw #ffff
+
+	db #4d : db #00
+	db #4e : db #00
+	db #6c : db #00
+	db #6d : db #00
+	db #6e : db #00
+	db #6f : db #00
+	db #8d : db #00
+	db #8e : db #00
+	db #8f : db #00
+	db #ad : db #00
+	db #ae : db #00
+	db #af : db #00
+	db #cd : db #00
+	db #ce : db #00
+	db #cf : db #00
+	db #ed : db #00
+	db #ee : db #cc
+	db #ef : db #00
+	dw #ffff
+
+	db #c : db #00
+	db #d : db #00
+	db #f : db #3f
+	db #2c : db #00
+	db #2d : db #00
+	db #2e : db #f0
+	db #30 : db #03
+	db #4c : db #00
+	db #4d : db #00
+	db #4e : db #00
+	db #4f : db #c0
+	db #50 : db #33
+	db #51 : db #00
+	db #52 : db #00
+	db #6d : db #00
+	db #6e : db #00
+	db #6f : db #00
+	db #70 : db #00
+	db #71 : db #00
+	db #72 : db #00
+	db #73 : db #00
+	db #74 : db #00
+	db #8e : db #00
+	db #90 : db #00
+	db #93 : db #00
 	db #94 : db #00
-	db #ae : db #40
-	db #d0 : db #bb
-	db #ef : db #8c
+	db #ae : db #00
+	db #af : db #00
+	db #b0 : db #00
+	db #cf : db #00
+	db #d0 : db #00
+	db #ef : db #00
+	db #f0 : db #00
+	db #f1 : db #00
 	dw #ffff
 
-	db #11 : db #37
-	db #30 : db #b2
-	db #8d : db #f1
-	db #ac : db #10
-	db #cc : db #55
+	db #f : db #00
+	db #10 : db #00
+	db #11 : db #00
+	db #2f : db #00
+	db #30 : db #00
+	db #31 : db #00
+	db #4e : db #00
+	db #4f : db #00
+	db #51 : db #00
+	db #52 : db #00
+	db #6c : db #00
+	db #6d : db #00
+	db #6e : db #00
+	db #6f : db #00
+	db #71 : db #00
+	db #72 : db #00
+	db #8b : db #00
+	db #8c : db #00
+	db #8d : db #00
+	db #92 : db #00
+	db #93 : db #00
+	db #ab : db #00
+	db #ac : db #00
+	db #b2 : db #00
+	db #b3 : db #00
+	db #b4 : db #00
+	db #cb : db #00
+	db #cc : db #00
 	db #d3 : db #00
 	dw #ffff
 
 	db #4d : db #09
 	db #4e : db #02
 	db #6c : db #cd
+	db #6d : db #ff
+	db #6e : db #fa
+	db #6f : db #01
 	db #8c : db #40
 	db #8d : db #ff
 	db #8e : db #ee
 	db #8f : db #23
 	db #ad : db #94
 	db #ae : db #95
+	db #af : db #10
 	db #cd : db #ce
 	db #ce : db #6f
 	db #cf : db #01
 	db #ec : db #44
+	db #ed : db #ff
+	db #ee : db #ff
 	db #ef : db #33
 	dw #ffff
 
+	db #c : db #04
+	db #d : db #ef
 	db #f : db #bf
 	db #2c : db #5a
+	db #2d : db #dc
+	db #2e : db #ff
 	db #30 : db #27
+	db #4c : db #90
 	db #4d : db #99
 	db #4e : db #fe
+	db #4f : db #ff
+	db #50 : db #ff
+	db #51 : db #1e
 	db #52 : db #06
+	db #6d : db #40
 	db #6e : db #6f
+	db #6f : db #de
 	db #70 : db #73
 	db #71 : db #40
 	db #72 : db #f4
 	db #73 : db #aa
 	db #74 : db #66
-	db #93 : db #00
-	db #ae : db #00
+	db #8e : db #ec
+	db #90 : db #33
 	db #af : db #fe
 	db #b0 : db #77
 	db #cf : db #c8
 	db #d0 : db #ff
 	db #d1 : db #01
 	db #ef : db #88
+	db #f0 : db #ff
 	db #f1 : db #37
 	dw #ffff
 
@@ -70,19 +164,26 @@
 	db #30 : db #33
 	db #31 : db #ec
 	db #32 : db #33
+	db #4e : db #8e
+	db #4f : db #f7
 	db #51 : db #c4
 	db #52 : db #bf
 	db #6c : db #08
-	db #71 : db #00
+	db #6d : db #cf
+	db #6e : db #f7
+	db #6f : db #10
 	db #72 : db #ff
 	db #73 : db #01
 	db #8b : db #59
 	db #8c : db #d6
+	db #8d : db #f1
 	db #92 : db #dc
 	db #93 : db #33
 	db #ab : db #55
-	db #b2 : db #00
+	db #ac : db #10
+	db #b3 : db #65
 	db #b4 : db #41
+	db #cb : db #40
 	db #cc : db #11
 	dw #ffff
 

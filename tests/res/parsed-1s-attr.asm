@@ -1,42 +1,103 @@
-	db #4e : db #07
-	db #6e : db #fa
-	db #6f : db #01
-	db #ec : db #04
-	db 0	; count blanked
+	db #ee : db #cc
+	db 17	; count blanked
 
 	db #00
 
-
-	db 1	; count unblanked
-
-	db #ec
-
-	db #2d : db #dc
-	db #72 : db #b8
-	db #73 : db #af
-	db #74 : db #17
-	db #93 : db #10
-	db #ae : db #40
-	db #d0 : db #bb
-	db #ef : db #8c
-	db 1	; count blanked
-
-	db #00
-
-	db #94
+	db #4d
+	db #4e
+	db #6c
+	db #6d
+	db #6e
+	db #6f
+	db #8d
+	db #8e
+	db #8f
+	db #ad
+	db #ae
+	db #af
+	db #cd
+	db #ce
+	db #cf
+	db #ed
+	db #ef
 
 	db 0	; count unblanked
 
 
-	db #11 : db #37
-	db #30 : db #b2
-	db #8d : db #f1
-	db #ac : db #10
-	db #cc : db #55
-	db 1	; count blanked
+	db #f : db #3f
+	db #2e : db #f0
+	db #30 : db #03
+	db #4f : db #c0
+	db #50 : db #33
+	db 29	; count blanked
 
 	db #00
 
+	db #c
+	db #d
+	db #2c
+	db #2d
+	db #4c
+	db #4d
+	db #4e
+	db #51
+	db #52
+	db #6d
+	db #6e
+	db #6f
+	db #70
+	db #71
+	db #72
+	db #73
+	db #74
+	db #8e
+	db #90
+	db #93
+	db #94
+	db #ae
+	db #af
+	db #b0
+	db #cf
+	db #d0
+	db #ef
+	db #f0
+	db #f1
+
+	db 0	; count unblanked
+
+
+	db 29	; count blanked
+
+	db #00
+
+	db #f
+	db #10
+	db #11
+	db #2f
+	db #30
+	db #31
+	db #4e
+	db #4f
+	db #51
+	db #52
+	db #6c
+	db #6d
+	db #6e
+	db #6f
+	db #71
+	db #72
+	db #8b
+	db #8c
+	db #8d
+	db #92
+	db #93
+	db #ab
+	db #ac
+	db #b2
+	db #b3
+	db #b4
+	db #cb
+	db #cc
 	db #d3
 
 	db 0	; count unblanked
@@ -45,55 +106,116 @@
 	db #4d : db #09
 	db #4e : db #02
 	db #6c : db #cd
+	db #6d : db #ff
+	db #6e : db #fa
+	db #6f : db #01
 	db #8c : db #40
 	db #8d : db #ff
 	db #8e : db #ee
 	db #8f : db #23
 	db #ad : db #94
 	db #ae : db #95
+	db #af : db #10
 	db #cd : db #ce
 	db #ce : db #6f
 	db #cf : db #01
 	db #ec : db #44
+	db #ed : db #ff
+	db #ee : db #ff
 	db #ef : db #33
 	db 0	; count blanked
 
 	db #00
 
 
-	db 1	; count unblanked
+	db 19	; count unblanked
 
+	db #4d
+	db #4e
+	db #6c
+	db #6d
+	db #6e
+	db #6f
 	db #8c
+	db #8d
+	db #8e
+	db #8f
+	db #ad
+	db #ae
+	db #af
+	db #cd
+	db #ce
+	db #cf
+	db #ec
+	db #ed
+	db #ef
 
+	db #c : db #04
+	db #d : db #ef
 	db #f : db #bf
 	db #2c : db #5a
+	db #2d : db #dc
+	db #2e : db #ff
 	db #30 : db #27
+	db #4c : db #90
 	db #4d : db #99
 	db #4e : db #fe
+	db #4f : db #ff
+	db #50 : db #ff
+	db #51 : db #1e
 	db #52 : db #06
+	db #6d : db #40
 	db #6e : db #6f
+	db #6f : db #de
 	db #70 : db #73
 	db #71 : db #40
 	db #72 : db #f4
 	db #73 : db #aa
 	db #74 : db #66
+	db #8e : db #ec
+	db #90 : db #33
 	db #af : db #fe
 	db #b0 : db #77
 	db #cf : db #c8
 	db #d0 : db #ff
 	db #d1 : db #01
 	db #ef : db #88
+	db #f0 : db #ff
 	db #f1 : db #37
-	db 2	; count blanked
+	db 0	; count blanked
 
 	db #00
 
-	db #93
-	db #ae
 
-	db 1	; count unblanked
+	db 27	; count unblanked
 
+	db #c
+	db #d
+	db #2c
+	db #2d
+	db #4c
+	db #4d
+	db #4e
+	db #51
+	db #52
+	db #6d
+	db #6e
+	db #6f
+	db #70
+	db #71
+	db #72
+	db #73
+	db #74
+	db #8e
+	db #90
+	db #af
+	db #b0
+	db #cf
+	db #d0
 	db #d1
+	db #ef
+	db #f0
+	db #f1
 
 	db #f : db #8c
 	db #10 : db #fb
@@ -103,30 +225,63 @@
 	db #30 : db #33
 	db #31 : db #ec
 	db #32 : db #33
+	db #4e : db #8e
+	db #4f : db #f7
 	db #51 : db #c4
 	db #52 : db #bf
 	db #6c : db #08
+	db #6d : db #cf
+	db #6e : db #f7
+	db #6f : db #10
 	db #72 : db #ff
 	db #73 : db #01
 	db #8b : db #59
 	db #8c : db #d6
+	db #8d : db #f1
 	db #92 : db #dc
 	db #93 : db #33
 	db #ab : db #55
+	db #ac : db #10
+	db #b3 : db #65
 	db #b4 : db #41
+	db #cb : db #40
 	db #cc : db #11
-	db 2	; count blanked
+	db 0	; count blanked
 
 	db #00
 
-	db #71
-	db #b2
 
-	db 3	; count unblanked
+	db 29	; count unblanked
 
+	db #f
+	db #10
+	db #11
 	db #12
+	db #2f
+	db #30
+	db #31
 	db #32
+	db #4e
+	db #4f
+	db #51
+	db #52
+	db #6c
+	db #6d
+	db #6e
+	db #6f
+	db #72
 	db #73
+	db #8b
+	db #8c
+	db #8d
+	db #92
+	db #93
+	db #ab
+	db #ac
+	db #b3
+	db #b4
+	db #cb
+	db #cc
 
 	db #4d : db #04
 	db #4e : db #01
